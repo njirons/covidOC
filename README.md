@@ -21,6 +21,7 @@ The scripts in the main directory can be run in the following sequence:
     - `81_oc-local.R`: Example R script to run policy optimization for a single (US state, cost function, NPI model) specification.
 + `90_oc-plots.R`: R script to generate NPI policy plots in the paper.
 + `90_posterior-plots.R`: R script to generate parameter posterior plots in the paper.
++ `90_sensitivity-plots.R`: R script to generate sensitivity analysis plots in the paper.
 + `90_us-map-plots.R`: R script to generate US map plot in the paper.
 
 Any supplementary scripts or data (or code needed to generate them) can be found in the `scripts` and `data` folders, respectively.
