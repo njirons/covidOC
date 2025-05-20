@@ -163,7 +163,7 @@ transformed parameters {
   }
 }
 model {
-  ccd ~ normal(ccd_mean, ccd_sd) T[ccd_lower,];  
+  ccd ~ normal(ccd_mean, ccd_sd) T[ccd_lower,ccd_upper];  
   
   d_hurdle ~ uniform(0, 1);
   c_hurdle ~ uniform(0, 1);
