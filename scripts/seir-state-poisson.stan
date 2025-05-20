@@ -22,7 +22,6 @@ data {
   
   real<lower=0> r0_mean;
   real<lower=0> r0_median;
-  // real<lower=0, upper=1> ifr;
   real<lower=0, upper=1> ifr_mean;
   real<lower=1> ccd_mean;
   
@@ -34,7 +33,6 @@ data {
   real<lower=0, upper=1> gamma;
   real<lower=0, upper=1> delta;
   real<lower=0, upper=1> mu;
-  real<lower=0, upper=1> rr;
   
   // handle zero-inflation in data, if present
   int<lower=0, upper=n_d> n0_d;
@@ -57,13 +55,9 @@ data {
 }
 parameters {
   vector<lower=0, upper=r0_upper>[n_error_terms] r0; // time-varying R0(t)
-  // real<lower=r0_lower,upper=r0_upper> r0_max;
-  // vector<lower=0, upper=1>[n_error_terms] r0_prop; // time-varying R0(t)
   real log_sigma;
   
   real<lower=ccd_lower> ccd; // case confirmation delay
-  // real<lower=ccd_lower, upper=ccd_upper> ccd; // case confirmation delay
-  // real log_c0;
   real<lower=0,upper=1> c0_prop;
   
   vector<lower=0, upper=1>[n_error_terms] car; // time-varying case ascertainment rate
@@ -71,7 +65,6 @@ parameters {
   
   simplex[n_compartments] x0; // initial SIR states   
   
-  // real<lower=0,upper=kappa_d_upper> kappa_c;
   real log_kappa_c;
   
   real<lower=0, upper=1> d_hurdle; // death hurdle model zero probability
@@ -79,14 +72,9 @@ parameters {
   real<lower=0, upper=1> c_hurdle; // case hurdle model zero probability
   real<lower=0, upper=1> c_disp; // case overdispersion mixture parameter
   
-  // real<lower=ifr_lower,upper=ifr_upper> ifr; // infection fatality rate
   real<lower=0,upper=1> ifr;
 }
 transformed parameters {
-  // real death_par0;
-  // real case_par0;
-  // real c_disp0;  
-  
   vector[n_d] death_par; // death mean
   vector[n_d] death_par_obs; // death mean on observation days
   
@@ -104,17 +92,11 @@ transformed parameters {
   vector[n_d] nu; // new infections
   vector[n_d] inf_c; // infections waiting to be confirmed
   
-  // vector[n_error_terms] r0;
-  // r0[1] = r0_max * r0_prop[1];
-  // r0[1] = r0_max;
-  
   sus[1] = init_props * x0[1] + (1 - init_props);
   exps[1] = init_props * x0[2];
   inf[1] = init_props * x0[3];
   rem_s[1] = init_props * (x0[4] + x0[n_compartments]) * (1-ifr);
   rem_d[1] = init_props * x0[4] * ifr;
-  // rem_s[1] = 0;
-  // rem_d[1] = 0;
   
   nu[1] = fmin(1,fmax(0,gamma * r0[1] * sus[1] * inf[1]));
   
@@ -123,32 +105,24 @@ transformed parameters {
   
   inf_c[1] = n * (1-c0_prop) * (1-sus[1]) * (1 - 1 / ccd) + n * car[1] * nu[1];
   case_par[1] =  n * (1-c0_prop) * (1-sus[1]) / ccd;  
-  // inf_c[1] = exp(log_c0) * (1 - 1 / ccd) + n * car[1] * nu[1];
-  // case_par[1] = exp(log_c0) / ccd;
   case_par_obs[1] = case_par[1];
   c_disp_par[1] = c_disp * case_par[1] * exp(-log_kappa_c)
                   + (1 - c_disp) * exp(-log_kappa_c);
-  c_disp_obs[1] = c_disp_par[1]; 
-  
-  // death_par0 = n * init_props * x0[n_compartments] * ifr;
-  // case_par0 = n * c0_prop * (1-sus[1]); 
-  // c_disp0 = c_disp * case_par0 * exp(-log_kappa_c)
-  //                 + (1 - c_disp) * exp(-log_kappa_c);  
+  c_disp_obs[1] = c_disp_par[1];  
   
   for (day in 1 : (n_d - 1)) {
-    sus[day + 1] = fmin(1, fmax(0, sus[day] - nu[day] + rr * rem_s[day]));
+    sus[day + 1] = fmin(1, fmax(0, sus[day] - nu[day]));
     exps[day + 1] = fmin(1, fmax(0, exps[day] * (1 - delta) + nu[day]));
     inf[day + 1] = fmin(1,
                         fmax(0, inf[day] * (1 - gamma) + delta * exps[day]));
     rem_s[day + 1] = fmin(1,
                           fmax(0,
-                               rem_s[day] * (1 - rr)
+                               rem_s[day]
                                + inf[day] * gamma * (1 - ifr)));
     rem_d[day + 1] = fmin(1,
                           fmax(0,
                                rem_d[day] * (1 - mu) + inf[day] * gamma * ifr));
     
-    // r0[error_term_inds[day + 1]] = r0_max * r0_prop[error_term_inds[day + 1]];
     nu[day + 1] = fmin(1,
                        fmax(0,gamma
                             * r0[error_term_inds[day + 1]]
@@ -174,18 +148,12 @@ transformed parameters {
   }
 }
 model {
-  // kappa_c ~ uniform(0,kappa_d_upper);
-  // log_kappa_c ~ uniform(-10,kappa_d_upper);
-  
-  // ccd ~ normal(ccd_mean, ccd_sd) T[ccd_lower, ccd_upper];
-  ccd ~ normal(ccd_mean, ccd_sd) T[ccd_lower,];  
+  ccd ~ normal(ccd_mean, ccd_sd) T[ccd_lower, ccd_upper];
   
   d_hurdle ~ uniform(0, 1);
   c_hurdle ~ uniform(0, 1);
   c_disp ~ uniform(0, 1);
   
-  // d[d_nz_inds] ~ poisson(death_par_obs[d_nz_inds]);
-  // c[c_nz_inds] ~ neg_binomial_2(case_par_obs[c_nz_inds], c_disp_obs[c_nz_inds]);
   if (n0_d > 0) {
     // ZIP model on deaths
     target += log_sum_exp(bernoulli_lpmf(1 | d_hurdle),
@@ -211,29 +179,15 @@ model {
     c ~ neg_binomial_2(case_par_obs, c_disp_obs);
   }  
   
-  // d0 ~ poisson(death_par0);
-  // c0 ~ neg_binomial_2(case_par0,c_disp0);  
-  d0 ~ poisson(n * init_props * (x0[4] + x0[n_compartments]) * ifr);
-  // d0 ~ poisson(n * init_props * x0[n_compartments] * ifr);
-               // + sum(death_par[1 : (min(d_nz_inds) - 1)]));
-  // c0 ~ poisson(n * c0_prop * (1-sus[1]));            
+  d0 ~ poisson(n * init_props * (x0[4] + x0[n_compartments]) * ifr);           
   
   // independent error terms 
   r0[1] ~ uniform(0, r0_upper);
-  // for (j in 2 : n_error_terms) {
-  //   r0[j] ~ lognormal(r0[j-1],exp(log_sigma)) T[0,r0_upper];
-  // }
-  // r0[1] ~ normal(r0_median, r0_sd)T[r0_lower,r0_upper];
   for (j in 2 : n_error_terms) {
     target += beta_lpdf(r0[j]/r0_upper |
     exp(log_sigma)*r0[j-1]/r0_upper,
     exp(log_sigma)*(1-r0[j-1]/r0_upper));
   }
-  // r0_max ~ normal(r0_median, r0_sd)T[r0_lower,r0_upper];
-  // r0_prop[1] ~ uniform(0,1);
-  // for (j in 2 : n_error_terms) {
-  //   r0_prop[j] ~ beta(r0_prop[j-1]*exp(log_sigma),(1-r0_prop[j-1])*exp(log_sigma));
-  // }
 
   car[1] ~ uniform(0, 1);
   car[2 : n_error_terms] ~ beta(exp(log_car_sigma)
@@ -245,20 +199,9 @@ model {
   x0 ~ dirichlet(rep_vector(1, n_compartments));
   
   // prior on IFR from Irons and Raftery (2021)
-  // ifr ~ normal(ifr_mean,ifr_sd)T[ifr_lower,ifr_upper];
   ifr ~ normal(ifr_mean,ifr_sd)T[0,1];
 }
 generated quantities {
-  // array[n_d] int dhat;
-  // array[n_d] int chat;
-  // array[n_d] int dhat_obs;
-  // array[n_d] int chat_obs;
-  // 
-  // dhat = poisson_rng(death_par);
-  // chat = neg_binomial_2_rng(case_par, c_disp_par);
-  // dhat_obs = poisson_rng(death_par_obs);
-  // chat_obs = neg_binomial_2_rng(case_par_obs, c_disp_obs); 
-  
   array[n_d] int dhat_nz;
   array[n_d] int chat_nz;
   array[n_d] int dhat_nz_obs;
