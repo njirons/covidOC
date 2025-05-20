@@ -22,7 +22,6 @@ data {
   
   real<lower=0> r0_mean;
   real<lower=0> r0_median;
-  // real<lower=0, upper=1> ifr;
   real<lower=0, upper=1> ifr_mean;
   real<lower=1> ccd_mean;
   
