@@ -33,7 +33,6 @@ data {
   real<lower=0, upper=1> gamma;
   real<lower=0, upper=1> delta;
   real<lower=0, upper=1> mu;
-  real<lower=0, upper=1> rr;
   
   // handle zero-inflation in data, if present
   int<lower=0, upper=n_d> n0_d;
@@ -120,13 +119,13 @@ transformed parameters {
   c_disp_obs[1] = c_disp_par[1]; 
   
   for (day in 1 : (n_d - 1)) {
-    sus[day + 1] = fmin(1, fmax(0, sus[day] - nu[day] + rr * rem_s[day]));
+    sus[day + 1] = fmin(1, fmax(0, sus[day] - nu[day]));
     exps[day + 1] = fmin(1, fmax(0, exps[day] * (1 - delta) + nu[day]));
     inf[day + 1] = fmin(1,
                         fmax(0, inf[day] * (1 - gamma) + delta * exps[day]));
     rem_s[day + 1] = fmin(1,
                           fmax(0,
-                               rem_s[day] * (1 - rr)
+                               rem_s[day]
                                + inf[day] * gamma * (1 - ifr)));
     rem_d[day + 1] = fmin(1,
                           fmax(0,
