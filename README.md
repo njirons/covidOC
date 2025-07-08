@@ -1,5 +1,7 @@
 # covidOC
 
+DOI: 10.5281/zenodo.15836147
+
 Code to reproduce the results in
 > Irons NJ, Raftery AE (2024). "US COVID-19 school closure was not cost-effective, but other measures were."
 > [[arxiv]](https://arxiv.org/abs/2411.12016)
